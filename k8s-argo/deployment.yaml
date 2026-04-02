@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: abc-tech-deployment
+  name: ab-tech-deployment
   labels:
-    app: abc-tech
+    app: ab-tech
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: abc-tech
+      app: ab-tech
   template:
     metadata:
       labels:
-        app: abc-tech
+        app: ab-tech
     spec:
       containers:
-        - name: abc-tech
-          image: jsachdev07/abc_tech:3   # placeholder for Jenkins build number
+        - name: ab-tech
+          image: jsachdev07/ab_tech:3   # placeholder for Jenkins build number
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
