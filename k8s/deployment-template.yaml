@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: abc-tech
-          image: jsachdev07/abc_tech:${BUILD_NUMBER}   # placeholder for Jenkins build number
+          image: yogada1/abc_tech:${BUILD_NUMBER}   # placeholder for Jenkins build number
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
