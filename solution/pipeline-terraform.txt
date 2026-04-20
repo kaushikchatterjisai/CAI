@@ -34,7 +34,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 withDockerRegistry([credentialsId: "${DOCKERHUB_CREDS}", url: ""]) {
-                    sh 'docker push jsachdev07/abc_tech:$BUILD_NUMBER'
+                    sh 'docker push yogada1/abc_tech:$BUILD_NUMBER'
                 }
             }
         }
