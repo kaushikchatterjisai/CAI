@@ -29,6 +29,21 @@ resource "aws_eks_cluster" "eks" {
   role_arn = aws_iam_role.eks_cluster_role.arn
   version  = "1.33"
 
+resource "aws_eks_access_entry" "jenkins" {
+  cluster_name      = aws_eks_cluster.eks.name
+  principal_arn     = "arn:aws:iam::ACCOUNT_ID:role/your-jenkins-role"
+  type              = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "jenkins_admin" {
+  cluster_name  = aws_eks_cluster.eks.name
+  policy_arn    = "arn:aws:iam::aws:policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = "arn:aws:iam::ACCOUNT_ID:role/your-jenkins-role"
+
+  access_scope {
+    type = "cluster"
+  }
+}
   # Use default VPC subnets
   vpc_config {
     subnet_ids = data.aws_subnets.default.ids
