@@ -74,7 +74,58 @@ data "aws_subnets" "default" {
 data "aws_vpc" "default" {
   default = true
 }
+# Data for KMS
+data "aws_iam_policy_document" "kms_policy" {
+  # Statement 1: Admin access for Root (Explicitly listed to pass CKV_AWS_109/111)
+  statement {
+    sid    = "EnableIAMUserPermissions"
+    effect = "Allow"
+    actions = [
+      "kms:CreateKey",
+      "kms:DescribeKey",
+      "kms:EnableKey",
+      "kms:ListKeys",
+      "kms:PutKeyPolicy",
+      "kms:UpdateKeyDescription",
+      "kms:RevokeGrant",
+      "kms:DisableKey",
+      "kms:GetKeyPolicy",
+      "kms:GetKeyRotationStatus",
+      "kms:DeleteAlias",
+      "kms:TagResource",
+      "kms:UntagResource",
+      "kms:ScheduleKeyDeletion",
+      "kms:CancelKeyDeletion"
+    ]
+    resources = ["*"]
 
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  # Statement 2: Cryptographic operations for EKS (Restricted actions to pass CKV_AWS_356)
+  statement {
+    sid    = "AllowEKSServiceToUseKey"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncryptTo",
+      "kms:ReEncryptFrom",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+}
 # IAM role for worker nodes
 resource "aws_iam_role" "eks_node_role" {
   name = "eks-node-role"
