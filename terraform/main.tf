@@ -33,7 +33,9 @@ resource "aws_eks_cluster" "eks" {
   vpc_config {
     subnet_ids = data.aws_subnets.default.ids
     endpoint_private_access = true
-    endpoint_public_access  = false
+    endpoint_public_access  = false   
+    #Only Allow the Specific IP of your jenkins runner
+    public_access_cidrs     = ["65.0.1.39/32"]
   }
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
