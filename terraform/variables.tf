@@ -1,6 +1,6 @@
 variable "node_key" {
   description = "EC2 keypair name for SSH access"
-  default     = "ap-linux-kp"
+  default     = "jk-tst"
 }
 
 variable "region" {
