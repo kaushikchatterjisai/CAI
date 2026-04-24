@@ -22,7 +22,18 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
+# This creates the actual KMS key
+resource "aws_kms_key" "eks" {
+  description             = "KMS key for EKS cluster secrets encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
 
+# This gives it a human-readable name in the AWS Console
+resource "aws_kms_alias" "eks" {
+  name          = "alias/${var.cluster_name}-key"
+  target_key_id = aws_kms_key.eks.key_id
+}
 # EKS Cluster
 resource "aws_eks_cluster" "eks" {
   name     = var.cluster_name
