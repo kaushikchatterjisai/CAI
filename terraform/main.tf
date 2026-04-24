@@ -54,6 +54,55 @@ resource "aws_kms_alias" "eks" {
   name          = "alias/${var.cluster_name}-key"
   target_key_id = aws_kms_key.eks.key_id
 }
+
+data "aws_iam_policy_document" "kms_policy" {
+  # Statement 1: Allow Root account full management (Necessary for recovery)
+  statement {
+    sid    = "EnableIAMUserPermissions"
+    effect = "Allow"
+    actions = [
+      "kms:Create*",
+      "kms:Describe*",
+      "kms:Enable*",
+      "kms:List*",
+      "kms:Put*",
+      "kms:Update*",
+      "kms:Revoke*",
+      "kms:Disable*",
+      "kms:Get*",
+      "kms:Delete*",
+      "kms:TagResource",
+      "kms:UntagResource",
+      "kms:ScheduleKeyDeletion",
+      "kms:CancelKeyDeletion"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  # Statement 2: Allow EKS Service to use the key (Restricts Write Access)
+  statement {
+    sid    = "AllowEKSServiceToUseKey"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+}
 # EKS Cluster
 resource "aws_eks_cluster" "eks" {
   name     = var.cluster_name
