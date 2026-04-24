@@ -32,6 +32,16 @@ resource "aws_eks_cluster" "eks" {
   # Use default VPC subnets
   vpc_config {
     subnet_ids = data.aws_subnets.default.ids
+    endpoint_private_access = true
+    endpoint_public_access  = false
+  }
+  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+
+  encryption_config {
+    resources = ["secrets"]
+    provider {
+      key_arn = aws_kms_key.eks.arn
+    }
   }
 }
 
@@ -96,6 +106,7 @@ resource "aws_eks_node_group" "node_group" {
 
   remote_access {
     ec2_ssh_key = var.node_key   # picks up Jenkins variable
+    source_security_group_ids = [aws_security_group.bastion.id]
   }
 
 }
