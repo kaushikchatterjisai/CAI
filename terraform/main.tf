@@ -22,14 +22,34 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   role       = aws_iam_role.eks_cluster_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
-# This creates the actual KMS key
 resource "aws_kms_key" "eks" {
   description             = "KMS key for EKS cluster secrets encryption"
   deletion_window_in_days = 7
-  enable_key_rotation     = true
+  
+  # FIX for CKV_AWS_7: Customer Managed Keys must have rotation enabled
+  enable_key_rotation     = true 
+
+  # FIX for CKV2_AWS_64: A policy must be defined (see below)
+  policy = data.aws_iam_policy_document.kms_policy.json
 }
 
-# This gives it a human-readable name in the AWS Console
+# The policy is required to prevent "wildcard" principal errors (CKV_AWS_33)
+data "aws_iam_policy_document" "kms_policy" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
+
 resource "aws_kms_alias" "eks" {
   name          = "alias/${var.cluster_name}-key"
   target_key_id = aws_kms_key.eks.key_id
