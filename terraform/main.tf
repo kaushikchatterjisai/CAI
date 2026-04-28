@@ -57,7 +57,7 @@ resource "aws_eks_access_policy_association" "jenkins_admin" {
   encryption_config {
     resources = ["secrets"]
     provider {
-      key_arn = aws_kms_key.eks.arn
+      key_arn = data.aws_kms_key.eks.arn
     }
   }
 }
@@ -70,7 +70,7 @@ data "aws_subnets" "default" {
   }
 }
 data "aws_kms_key" "eks" {
-  key_id = " aws/ebs"
+  key_id = "alias/aws/ebs"
 }
 
 # Fetch default VPC
