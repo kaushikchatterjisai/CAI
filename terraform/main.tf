@@ -24,6 +24,23 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 }
 
 # EKS Cluster
+
+ resource "aws_kms_key" "eks" {
+  description             = "EKS Secret Encryption Key"
+  deletion_window_in_days = 7
+}
+
+resource "aws_kms_alias" "eks" {
+  name          = "alias/eks-encryption-key"
+  target_key_id = aws_kms_key.eks.key_id
+}
+
+encryption_config {
+    resources = ["secrets"]
+    provider {
+      key_arn = aws_kms_key.eks.arn
+    }
+  }
 resource "aws_eks_cluster" "eks" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster_role.arn
@@ -35,15 +52,6 @@ resource "aws_eks_access_entry" "jenkins" {
   type              = "STANDARD"
 }
 
-resource "aws_kms_key" "eks" {
-  description             = "EKS Secret Encryption Key"
-  deletion_window_in_days = 7
-}
-
-resource "aws_kms_alias" "eks" {
-  name          = "alias/eks-encryption-key"
-  target_key_id = aws_kms_key.eks.key_id
-}
 
 resource "aws_eks_access_policy_association" "jenkins_admin" {
   cluster_name  = aws_eks_cluster.eks.name
@@ -64,12 +72,7 @@ resource "aws_eks_access_policy_association" "jenkins_admin" {
   }
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
- encryption_config {
-    resources = ["secrets"]
-    provider {
-      key_arn = aws_kms_key.eks.arn
-    }
-  }
+ 
 }
 
 # Fetch default subnets
