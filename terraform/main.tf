@@ -61,7 +61,7 @@ resource "aws_eks_access_policy_association" "jenkins_admin" {
  encryption_config {
     resources = ["secrets"]
     provider {
-      key_arn = data.aws_kms_key.eks.arn
+      key_arn = aws_kms_key.eks.arn
     }
   }
 }
