@@ -58,12 +58,12 @@ resource "aws_eks_access_policy_association" "jenkins_admin" {
   }
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
-  encryption_config {
-    resources = ["secrets"]
-    provider {
-      key_arn = data.aws_kms_key.eks.arn
-    }
-  }
+ # encryption_config {
+  #  resources = ["secrets"]
+   # provider {
+    #  key_arn = data.aws_kms_key.eks.arn
+    #}
+  #}
 }
 
 # Fetch default subnets
