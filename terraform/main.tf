@@ -39,6 +39,12 @@ resource "aws_kms_key" "eks" {
   description             = "EKS Secret Encryption Key"
   deletion_window_in_days = 7
 }
+
+resource "aws_kms_alias" "eks" {
+  name          = "alias/eks-encryption-key"
+  target_key_id = aws_kms_key.eks.key_id
+}
+
 resource "aws_eks_access_policy_association" "jenkins_admin" {
   cluster_name  = aws_eks_cluster.eks.name
   policy_arn    = "arn:aws:iam::aws:policy/AmazonEKSClusterAdminPolicy"
