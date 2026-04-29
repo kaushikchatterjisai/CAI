@@ -35,6 +35,10 @@ resource "aws_eks_access_entry" "jenkins" {
   type              = "STANDARD"
 }
 
+resource "aws_kms_key" "eks" {
+  description             = "EKS Secret Encryption Key"
+  deletion_window_in_days = 7
+}
 resource "aws_eks_access_policy_association" "jenkins_admin" {
   cluster_name  = aws_eks_cluster.eks.name
   policy_arn    = "arn:aws:iam::aws:policy/AmazonEKSClusterAdminPolicy"
