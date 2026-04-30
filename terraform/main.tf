@@ -83,9 +83,9 @@ data "aws_subnets" "default" {
     values = [data.aws_vpc.default.id]
   }
 }
-#data "aws_kms_key" "eks" {
- # key_id = "alias/aws/ebs"
-#}
+data "aws_kms_key" "existing_eks_key" {
+   key_id = "alias/eks-key-alias-here"
+   }
 
 # Fetch default VPC
 data "aws_vpc" "default" {
