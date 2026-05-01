@@ -50,7 +50,7 @@ resource "aws_kms_alias" "eks" {
 encryption_config {
     resources = ["secrets"]
     provider {
-      key_arn = aws_kms_key.eks_key.arn
+      key_arn = aws_kms_key.eks.arn
     }
   }
 
