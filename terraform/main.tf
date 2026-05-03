@@ -44,6 +44,32 @@ resource "aws_instance" "ec2" {
   metadata_options {
     http_tokens = "required" # CKV_AWS_79 fix (Enforces IMDSv2)
   }
+ # 1. Create the IAM Role
+resource "aws_iam_role" "ec2_role" {
+  name = "capstone-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+# 2. Create the Instance Profile (This is what the EC2 uses)
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "capstone-ec2-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+# 3. Update your EC2 resource to use the new profile
+resource "aws_instance" "ec2" {
+  # ... 
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  # ...
+}
 
   user_data = <<-EOF
               #!/bin/bash
