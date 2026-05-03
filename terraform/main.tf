@@ -1,143 +1,52 @@
 provider "aws" {
-  region = var.region
+  region = "ap-south-1"
 }
 
-# IAM role for EKS control plane
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks-cluster-role"
+resource "aws_security_group" "sg" {
+  name        = "capstone-sg"
+  description = "Allow 8080 for web app"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "eks.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
-  role       = aws_iam_role.eks_cluster_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-# EKS Cluster
-
-
-resource "aws_eks_cluster" "eks" {
-  name     = var.cluster_name
-  role_arn = aws_iam_role.eks_cluster_role.arn
-  version  = "1.33"
-
-resource "aws_eks_access_entry" "jenkins" {
-  cluster_name      = aws_eks_cluster.eks.name
-  principal_arn     = "arn:aws:iam::ACCOUNT_ID:role/your-jenkins-role"
-  type              = "STANDARD"
-}
-
- resource "aws_kms_key" "eks" {
-  description             = "EKS Secret Encryption Key"
-  deletion_window_in_days = 7
-}
-
-resource "aws_kms_alias" "eks" {
-  name          = "alias/eks-encryption-key"
-  target_key_id = aws_kms_key.eks.key_id
-}
-
-encryption_config {
-    resources = ["secrets"]
-    provider {
-      key_arn = aws_kms_key.eks.arn
-    }
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-resource "aws_eks_access_policy_association" "jenkins_admin" {
-  cluster_name  = aws_eks_cluster.eks.name
-  policy_arn    = "arn:aws:iam::aws:policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = "arn:aws:iam::ACCOUNT_ID:role/your-jenkins-role"
-
-  access_scope {
-    type = "cluster"
-  }
-}
-  # Use default VPC subnets
-  vpc_config {
-    subnet_ids = data.aws_subnets.default.ids
-    endpoint_private_access = true
-    endpoint_public_access  = false   
-    #Only Allow the Specific IP of your jenkins runner
-    public_access_cidrs     = ["65.0.1.39/32"]
-  }
-  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
-
- 
-}
-
-# Fetch default subnets
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+  # Adding egress so the instance can download Docker packages
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# Fetch default VPC
-data "aws_vpc" "default" {
-  default = true
-}
+resource "aws_instance" "ec2" {
+  ami           = "ami-0388e3ada3d9812da" # Ensure this is a valid Ubuntu AMI for ap-south-1
+  instance_type = "t3.medium"
+  key_name      = "tf-pk"
 
-# IAM role for worker nodes
-resource "aws_iam_role" "eks_node_role" {
-  name = "eks-node-role"
+  # Use vpc_security_group_ids for standard VPC deployments
+  vpc_security_group_ids = [aws_security_group.sg.id]
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install docker.io -y
+              systemctl start docker
+              systemctl enable docker
+              
+              # Note: $BUILD_NUMBER is a Jenkins variable. 
+              # If running via Jenkins, ensure this is interpolated correctly or hardcoded for testing.
+              docker run -d -p 8080:8080 yogada1/abc_tech:latest
+              EOF
 
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_registry_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-# Node group
-resource "aws_eks_node_group" "node_group" {
-  cluster_name    = aws_eks_cluster.eks.name
-  node_group_name = var.node_group_name
-  node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = data.aws_subnets.default.ids
-
-  scaling_config {
-    desired_size = var.desired_capacity
-    min_size     = var.min_size
-    max_size     = var.max_size
+  tags = {
+    Name = "Capstone-App"
   }
+}
 
-  instance_types = [var.node_instance_type]
-
-  remote_access {
-    ec2_ssh_key = var.node_key   # picks up Jenkins variable
-    source_security_group_ids = [aws_security_group.bastion.id]
-  }
-
+output "public_ip" {
+  value = aws_instance.ec2.public_ip
 }
