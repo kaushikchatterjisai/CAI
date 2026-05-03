@@ -1,9 +1,10 @@
+# 1. Security Group
 resource "aws_security_group" "sg" {
   name        = "capstone-sg"
   description = "Allow 8080 for web app"
 
   ingress {
-    description = "Allow port 8080 from everywhere" # CKV_AWS_23 fix
+    description = "Allow port 8080"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
@@ -11,43 +12,18 @@ resource "aws_security_group" "sg" {
   }
 
   egress {
-    description = "Allow outbound HTTP traffic for updates" # CKV_AWS_23 fix
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp" # CKV_AWS_382 fix: Replaced -1 (all) with specific port
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow outbound HTTPS traffic for updates"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-resource "aws_instance" "ec2" {
-  ami           = "ami-0388e3ada3d9812da"
-  instance_type = "t3.medium"
-  key_name      = "tf-pk"
-
-  vpc_security_group_ids = [aws_security_group.sg.id]
-  monitoring             = true           # CKV_AWS_126 fix
-  ebs_optimized          = true           # CKV_AWS_135 fix
-  iam_instance_profile   = "my-iam-role"  # CKV2_AWS_41 fix (Assumes role exists)
-
-  root_block_device {
-    encrypted = true # CKV_AWS_8 fix
-  }
-
-  metadata_options {
-    http_tokens = "required" # CKV_AWS_79 fix (Enforces IMDSv2)
-  }
- # 1. Create the IAM Role
+# 2. IAM Role
 resource "aws_iam_role" "ec2_role" {
   name = "capstone-ec2-role"
-   }
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -58,18 +34,30 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
-# 2. Create the Instance Profile (This is what the EC2 uses)
+# 3. IAM Instance Profile
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "capstone-ec2-profile"
   role = aws_iam_role.ec2_role.name
 }
 
-# 3. Update your EC2 resource to use the new profile
+# 4. EC2 Instance (ONLY ONE BLOCK)
 resource "aws_instance" "ec2" {
-  # ... 
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
-  # ...
-}
+  ami                    = "ami-0388e3ada3d9812da"
+  instance_type          = "t3.medium"
+  key_name               = "tf-pk"
+  vpc_security_group_ids = [aws_security_group.sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  
+  monitoring    = true
+  ebs_optimized = true
+
+  root_block_device {
+    encrypted = true
+  }
+
+  metadata_options {
+    http_tokens = "required"
+  }
 
   user_data = <<-EOF
               #!/bin/bash
