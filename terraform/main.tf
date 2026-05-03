@@ -47,7 +47,7 @@ resource "aws_instance" "ec2" {
  # 1. Create the IAM Role
 resource "aws_iam_role" "ec2_role" {
   name = "capstone-ec2-role"
-
+   }
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
