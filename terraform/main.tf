@@ -55,7 +55,7 @@ resource "aws_instance" "ec2" {
   vpc_security_group_ids = [aws_security_group.sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
-  associate_public_ip_address = true
+  
   monitoring    = true
   ebs_optimized = true
 
