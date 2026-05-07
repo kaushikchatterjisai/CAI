@@ -55,7 +55,8 @@ resource "aws_instance" "ec2" {
   vpc_security_group_ids = [aws_security_group.sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
-  
+  associate_public_ip_address = true 
+  # checkov:skip=CKV_AWS_88:Public IP is required for OWASP ZAP dynamic scanning in the pipeline
   monitoring    = true
   ebs_optimized = true
 
